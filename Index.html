@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Andrei Shortener</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #0b0b0f;
+      color: white;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 600px;
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 38px;
+    }
+
+    .subtitle {
+      color: #999;
+      margin-bottom: 30px;
+    }
+
+    .box {
+      background: #15151c;
+      border: 1px solid #292934;
+      border-radius: 18px;
+      padding: 25px;
+      box-shadow: 0 15px 50px rgba(0, 0, 0, 0.35);
+    }
+
+    input {
+      width: 100%;
+      padding: 15px;
+      border: 1px solid #33333f;
+      border-radius: 10px;
+      background: #0e0e13;
+      color: white;
+      font-size: 16px;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #7777ff;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 14px;
+      padding: 15px;
+      border: 0;
+      border-radius: 10px;
+      background: #6366f1;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    #loginBox {
+      max-width: 420px;
+      margin: auto;
+    }
+
+    #loginMessage,
+    #message {
+      min-height: 20px;
+      margin-top: 15px;
+      color: #aaa;
+    }
+
+    #result {
+      display: none;
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 12px;
+      background: #0e0e13;
+      border: 1px solid #292934;
+    }
+
+    #shortUrl {
+      display: block;
+      word-break: break-all;
+      color: #8b8cff;
+      margin: 10px 0 12px;
+    }
+
+    .copy {
+      margin-top: 0;
+    }
+
+    .logout {
+      background: #292934;
+      margin-top: 10px;
+    }
+
+    footer {
+      margin-top: 20px;
+      color: #666;
+      font-size: 13px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="container">
+
+    <!-- LOGIN -->
+    <section id="loginBox" class="box">
+
+      <h1>Andrei Shortener</h1>
+
+      <div class="subtitle">
+        Private URL shortener
+      </div>
+
+      <input
+        id="passwordInput"
+        type="password"
+        placeholder="Enter password"
+        autocomplete="off"
+      >
+
+      <button id="loginButton">
+        Unlock
+      </button>
+
+      <div id="loginMessage"></div>
+
+    </section>
+
+
+    <!-- SHORTENER -->
+    <section id="shortenerBox" class="box hidden">
+
+      <h1>Andrei Shortener</h1>
+
+      <div class="subtitle">
+        Make long URLs shorter.
+      </div>
+
+      <input
+        id="urlInput"
+        type="url"
+        placeholder="https://example.com/your/long/link"
+        autocomplete="off"
+      >
+
+      <button id="shortenButton">
+        Shorten URL
+      </button>
+
+      <div id="message"></div>
+
+      <div id="result">
+
+        <div>Short URL:</div>
+
+        <a
+          id="shortUrl"
+          href="#"
+          target="_blank"
+          rel="noopener noreferrer"
+        ></a>
+
+        <button class="copy" id="copyButton">
+          Copy
+        </button>
+
+      </div>
+
+      <button class="logout" id="logoutButton">
+        Lock
+      </button>
+
+    </section>
+
+
+    <footer>
+      Powered by Andrei
+    </footer>
+
+  </main>
+
+
+  <script>
+
+    /* =========================
+       PASSWORD
+       ========================= */
+
+    const PASSWORD = "AndyKS";
+
+
+    /* =========================
+       ELEMENTS
+       ========================= */
+
+    const loginBox = document.getElementById("loginBox");
+    const shortenerBox = document.getElementById("shortenerBox");
+
+    const passwordInput =
+      document.getElementById("passwordInput");
+
+    const loginButton =
+      document.getElementById("loginButton");
+
+    const loginMessage =
+      document.getElementById("loginMessage");
+
+    const urlInput =
+      document.getElementById("urlInput");
+
+    const shortenButton =
+      document.getElementById("shortenButton");
+
+    const copyButton =
+      document.getElementById("copyButton");
+
+    const logoutButton =
+      document.getElementById("logoutButton");
+
+    const result =
+      document.getElementById("result");
+
+    const shortUrl =
+      document.getElementById("shortUrl");
+
+    const message =
+      document.getElementById("message");
+
+
+    /* =========================
+       LOGIN
+       ========================= */
+
+    function unlock() {
+
+      const enteredPassword =
+        passwordInput.value;
+
+      if (enteredPassword === PASSWORD) {
+
+        loginBox.classList.add("hidden");
+        shortenerBox.classList.remove("hidden");
+
+        passwordInput.value = "";
+        loginMessage.textContent = "";
+
+      } else {
+
+        loginMessage.textContent =
+          "Incorrect password.";
+
+        passwordInput.value = "";
+        passwordInput.focus();
+      }
+    }
+
+
+    loginButton.addEventListener(
+      "click",
+      unlock
+    );
+
+
+    passwordInput.addEventListener(
+      "keydown",
+      function(event) {
+
+        if (event.key === "Enter") {
+          unlock();
+        }
+
+      }
+    );
+
+
+    /* =========================
+       LOGOUT / LOCK
+       ========================= */
+
+    logoutButton.addEventListener(
+      "click",
+      function() {
+
+        shortenerBox.classList.add("hidden");
+        loginBox.classList.remove("hidden");
+
+        urlInput.value = "";
+        result.style.display = "none";
+        message.textContent = "";
+
+        passwordInput.focus();
+
+      }
+    );
+
+
+    /* =========================
+       SHORTEN URL
+       ========================= */
+
+    shortenButton.addEventListener(
+      "click",
+      shortenUrl
+    );
+
+
+    urlInput.addEventListener(
+      "keydown",
+      function(event) {
+
+        if (event.key === "Enter") {
+          shortenUrl();
+        }
+
+      }
+    );
+
+
+    async function shortenUrl() {
+
+      const longUrl =
+        urlInput.value.trim();
+
+      result.style.display = "none";
+      message.textContent = "";
+
+
+      if (!longUrl) {
+
+        message.textContent =
+          "Please enter a URL.";
+
+        return;
+      }
+
+
+      /* Validate URL */
+
+      try {
+
+        const parsedUrl =
+          new URL(longUrl);
+
+        if (
+          parsedUrl.protocol !== "http:" &&
+          parsedUrl.protocol !== "https:"
+        ) {
+
+          throw new Error();
+
+        }
+
+      } catch {
+
+        message.textContent =
+          "Please enter a valid URL starting with http:// or https://";
+
+        return;
+      }
+
+
+      shortenButton.disabled = true;
+      shortenButton.textContent = "Shortening...";
+      message.textContent =
+        "Creating your short link...";
+
+
+      try {
+
+        const response =
+          await fetch(
+            "https://shrtr.top/api/v1/shorten",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json"
+              },
+
+              body: JSON.stringify({
+                url: longUrl
+              })
+            }
+          );
+
+
+        const data =
+          await response.json();
+
+
+        if (!response.ok) {
+
+          throw new Error(
+            data.detail ||
+            "The shortening service returned an error."
+          );
+
+        }
+
+
+        if (!data.short_url) {
+
+          throw new Error(
+            "The API did not return a short URL."
+          );
+
+        }
+
+
+        shortUrl.textContent =
+          data.short_url;
+
+        shortUrl.href =
+          data.short_url;
+
+        result.style.display =
+          "block";
+
+        message.textContent =
+          "Done!";
+
+
+      } catch (error) {
+
+        console.error(error);
+
+        message.textContent =
+          error.message ||
+          "Something went wrong. Try again.";
+
+      } finally {
+
+        shortenButton.disabled =
+          false;
+
+        shortenButton.textContent =
+          "Shorten URL";
+
+      }
+
+    }
+
+
+    /* =========================
+       COPY
+       ========================= */
+
+    copyButton.addEventListener(
+      "click",
+      async function() {
+
+        const url =
+          shortUrl.textContent;
+
+        if (!url) return;
+
+
+        try {
+
+          await navigator.clipboard
+            .writeText(url);
+
+          copyButton.textContent =
+            "Copied!";
+
+          setTimeout(
+            function() {
+
+              copyButton.textContent =
+                "Copy";
+
+            },
+            1500
+          );
+
+
+        } catch {
+
+          /* Fallback */
+
+          const textArea =
+            document.createElement("textarea");
+
+          textArea.value = url;
+
+          document.body.appendChild(
+            textArea
+          );
+
+          textArea.select();
+
+          document.execCommand("copy");
+
+          textArea.remove();
+
+          copyButton.textContent =
+            "Copied!";
+
+          setTimeout(
+            function() {
+
+              copyButton.textContent =
+                "Copy";
+
+            },
+            1500
+          );
+
+        }
+
+      }
+    );
+
+  </script>
+
+</body>
+        </html>
