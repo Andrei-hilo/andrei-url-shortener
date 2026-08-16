@@ -62,6 +62,8 @@ h1,h2,h3,p{margin-top:0}.lock-card h1{margin:18px 0 7px;font-size:32px}.muted{co
     <button data-page="reaction">⚡ Reaction</button>
     <button data-page="memory">◈ Memory</button>
     <button data-page="clicker">◉ Clicker</button>
+    <small>Admin</small>
+    <button id="adminNav" data-page="admin" class="hidden">⚙ Admin Panel</button>
   </div>
 </aside>
 
@@ -206,6 +208,42 @@ h1,h2,h3,p{margin-top:0}.lock-card h1{margin:18px 0 7px;font-size:32px}.muted{co
     </div>
     <div id="clickerOut" class="status"></div>
   </div></section>
+
+  <section id="page-admin" class="page hidden">
+    <div class="hero">
+      <h2>Admin Panel</h2>
+      <p class="muted">Restricted administrator area.</p>
+      <span class="tag">Admin access</span>
+    </div>
+    <div class="cards">
+      <article class="card"><div class="icon">◉</div><h3>Site status</h3><p id="adminStatus">Checking...</p></article>
+      <article class="card"><div class="icon">★</div><h3>Favorites</h3><p id="adminFavCount">0</p></article>
+      <article class="card"><div class="icon">⌁</div><h3>Storage</h3><p id="adminStorage">0 KB</p></article>
+      <article class="card"><div class="icon">🎮</div><h3>Game controls</h3><p>Manage local game settings.</p></article>
+    </div>
+    <div class="panel" style="margin-top:12px">
+      <h3>Game controls</h3>
+      <div class="grid2">
+        <input id="adminCoins" class="field" type="number" min="0" placeholder="Clicker coins">
+        <input id="adminPower" class="field" type="number" min="1" placeholder="Clicker power">
+        <input id="adminCost" class="field" type="number" min="1" placeholder="Upgrade cost">
+        <input id="adminSnakeSpeed" class="field" type="number" min="50" max="1000" placeholder="Snake speed (ms)">
+      </div>
+      <div class="row">
+        <button class="btn" onclick="adminApplyGames()">Apply game settings</button>
+        <button class="btn ghost" onclick="adminResetGames()">Reset games</button>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:12px">
+      <h3>Site controls</h3>
+      <div class="row">
+        <button class="btn" onclick="adminClearFavorites()">Clear favorites</button>
+        <button class="btn ghost" onclick="adminResetTools()">Reset preferences</button>
+        <button class="btn danger" onclick="adminClearLocalData()">Clear local data</button>
+      </div>
+      <div id="adminMsg" class="status"></div>
+    </div>
+  </section>
 </main>
 </div>
 <div id="toast" class="toast hidden"></div>
@@ -218,6 +256,92 @@ h1,h2,h3,p{margin-top:0}.lock-card h1{margin:18px 0 7px;font-size:32px}.muted{co
   The local lock below is only a convenience lock.
 */
 const PASS_HASH=""; // no password stored here
+
+const SITE_PASSWORD = "AndyKS";
+const ADMIN_EMAILS = ["russellprinze@gmail.com", "andreihibruh8@gmail.com", "andreiandreiandreiandrrii@gmail.com", "andreibruh8@gmail.com"];
+
+function normalizeEmail(v) {
+  return String(v || "").trim().toLowerCase();
+}
+
+function isAdminEmail(email) {
+  return ADMIN_EMAILS.includes(normalizeEmail(email));
+}
+
+function currentLoginEmail() {
+  // The current GitHub-only build uses the email field as the local identity.
+  // This is a UI restriction, NOT secure server-side authorization.
+  return normalizeEmail($("email")?.value);
+}
+
+function refreshAdminAccess() {
+  const allowed = isAdminEmail(currentLoginEmail());
+  $("adminNav")?.classList.toggle("hidden", !allowed);
+  if (!allowed && $("page-admin") && !$("page-admin").classList.contains("hidden")) showPage("home");
+  if (allowed) {
+    const favs = JSON.parse(localStorage.getItem("favTools") || "[]");
+    $("adminFavCount").textContent = String(favs.length);
+    $("adminStatus").textContent = "Admin UI enabled";
+    $("adminStorage").textContent = (JSON.stringify(localStorage).length / 1024).toFixed(1) + " KB";
+    $("adminCoins").value=localStorage.getItem("andreiCoins")||0;
+    $("adminPower").value=localStorage.getItem("andreiPower")||1;
+    $("adminCost").value=localStorage.getItem("andreiCost")||25;
+    $("adminSnakeSpeed").value=localStorage.getItem("andreiSnakeSpeed")||115;
+  }
+}
+
+function adminApplyGames(){
+  if(!isAdminEmail(currentLoginEmail())) return;
+  const coins=Math.max(0,Number($("adminCoins").value)||0);
+  const power=Math.max(1,Number($("adminPower").value)||1);
+  const cost=Math.max(1,Number($("adminCost").value)||25);
+  const speed=Math.min(1000,Math.max(50,Number($("adminSnakeSpeed").value)||115));
+  localStorage.setItem("andreiCoins",coins);
+  localStorage.setItem("andreiPower",power);
+  localStorage.setItem("andreiCost",cost);
+  localStorage.setItem("andreiSnakeSpeed",speed);
+  if(typeof clickCoins!=="undefined"){clickCoins=coins;clickPower=power;clickCost=cost;if(typeof clickRender==="function")clickRender();}
+  $("adminMsg").textContent="Game settings applied.";
+}
+function adminResetGames(){
+  if(!isAdminEmail(currentLoginEmail())) return;
+  ["andreiCoins","andreiPower","andreiCost","andreiSnakeSpeed"].forEach(k=>localStorage.removeItem(k));
+  $("adminCoins").value=0;$("adminPower").value=1;$("adminCost").value=25;$("adminSnakeSpeed").value=115;
+  $("adminMsg").textContent="Game settings reset.";
+}
+function adminResetTools(){
+  if(!isAdminEmail(currentLoginEmail())) return;
+  localStorage.removeItem("favTools");
+  $("adminMsg").textContent="Tool preferences reset.";
+  refreshAdminAccess();
+}
+function adminClearLocalData(){
+  if(!isAdminEmail(currentLoginEmail())) return;
+  localStorage.clear();
+  $("adminMsg").textContent="All local data cleared.";
+}
+function openAdmin() {
+  if (!isAdminEmail(currentLoginEmail())) {
+    toast("Admin access denied");
+    return;
+  }
+  showPage("admin");
+  refreshAdminAccess();
+}
+
+function adminClearFavorites() {
+  if (!isAdminEmail(currentLoginEmail())) return;
+  localStorage.removeItem("favTools");
+  $("adminMsg").textContent = "Favorites cleared.";
+  $("adminFavCount").textContent = "0";
+}
+
+function adminClearGameData() {
+  if (!isAdminEmail(currentLoginEmail())) return;
+  ["andreiCoins","andreiPower","andreiCost"].forEach(k => localStorage.removeItem(k));
+  $("adminMsg").textContent = "Game data reset. Reload the page to refresh the clicker.";
+}
+
 const pages={
 home:["Dashboard","⌂"],favorites:["Favorites","★"],code:["Code Lab","⌘"],lua:["Lua Lab","◈"],json:["JSON","{}"],
 base64:["Base64","⇄"],regex:["Regex Tester",".*"],vectors:["Vector Math","✦"],color:["Color3 / RGB","◉"],
@@ -227,12 +351,24 @@ const $=id=>document.getElementById(id);
 function toast(s){$("toast").textContent=s;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),1800)}
 async function copy(id){let e=$(id),v=("value"in e)?e.value:e.textContent;if(!v)return;navigator.clipboard?.writeText(v);toast("Copied")}
 function login(){
-  // A local-only lock without a stored secret. For real privacy, add backend authentication.
-  $("lock").classList.add("hidden");$("app").classList.remove("hidden");localStorage.setItem("andreiUnlocked","1");
+  const email=$("email").value.trim().toLowerCase();
+  const password=$("pass").value;
+  $("lockErr").textContent="";
+  if(!email||!password){$("lockErr").textContent="Enter your email and password.";return}
+  if(password!==SITE_PASSWORD){
+    $("lockErr").textContent="Wrong password.";
+    $("pass").value="";
+    $("pass").focus();
+    return;
+  }
+  $("lock").classList.add("hidden");
+  $("app").classList.remove("hidden");
+  refreshAdminAccess();
 }
-$("unlock").onclick=login;$("pass").onkeydown=e=>{if(e.key==="Enter")login()};
-$("lockBtn").onclick=()=>{localStorage.removeItem("andreiUnlocked");location.reload()};
-if(localStorage.getItem("andreiUnlocked")==="1")login();
+$("email").oninput=refreshAdminAccess;
+$("unlock").onclick=login;
+$("pass").onkeydown=e=>{if(e.key==="Enter")login()};
+$("lockBtn").onclick=()=>{location.reload()};
 
 const tools=[
 ["code","⌘","Code Lab","Format and inspect JavaScript, HTML and CSS."],["lua","◈","Lua Lab","Lua text formatting and safe table helpers."],
@@ -248,7 +384,10 @@ function card(t){return `<article class="card"><div class="icon">${t[1]}</div><h
 $("homeCards").innerHTML=tools.map(card).join("");
 function openTool(id){showPage(id);document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===id))}
 function showPage(id){document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));$("page-"+id).classList.remove("hidden");$("title").textContent=pages[id]?.[0]||"Dashboard";$("side").classList.remove("open");scrollTo({top:0,behavior:"smooth"})}
-document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>openTool(b.dataset.page));
+document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>{
+  if(b.dataset.page==="admin"){openAdmin();return}
+  openTool(b.dataset.page);
+});
 $("menu").onclick=()=>$("side").classList.toggle("open");
 $("search").oninput=e=>{
  const q=e.target.value.toLowerCase().trim();
@@ -293,7 +432,7 @@ let snakeTimer, snakeBody, snakeFood, snakeV={x:1,y:0}, snakeNext={x:1,y:0}, sna
 function snakeStart(){
   clearInterval(snakeTimer);
   snakeBody=[{x:8,y:8},{x:7,y:8},{x:6,y:8}]; snakeV={x:1,y:0}; snakeNext={x:1,y:0}; snakePts=0; snakePlaceFood();
-  $("snakeScore").textContent="Score: 0"; snakeDraw(); snakeTimer=setInterval(snakeTick,115);
+  $("snakeScore").textContent="Score: 0"; snakeDraw(); snakeTimer=setInterval(snakeTick,Number(localStorage.getItem("andreiSnakeSpeed")||115));
 }
 function snakePlaceFood(){
   do{snakeFood={x:Math.floor(Math.random()*18),y:Math.floor(Math.random()*18)}}while(snakeBody.some(p=>p.x===snakeFood.x&&p.y===snakeFood.y));
@@ -358,4 +497,4 @@ function resetClicker(){clickCoins=0;clickPower=1;clickCost=25;clickSave();click
 snakeStart();memoryStart();clickRender();
 </script>
 </body>
-  </html>
+</html>
