@@ -26,7 +26,7 @@ h1,h2,h3,p{margin-top:0}.lock-card h1{margin:18px 0 7px;font-size:32px}.muted{co
     <div class="logo">A</div>
     <h1>Andrei Tools</h1>
     <p class="muted">Local access lock</p>
-    <input id="email" class="field" type="email" placeholder="Email address" autocomplete="username">
+    
     <input id="pass" class="field" type="password" placeholder="Enter password" autocomplete="current-password">
     <button class="btn" id="unlock">Unlock</button>
     <div id="lockErr" class="err"></div>
@@ -352,19 +352,24 @@ const $=id=>document.getElementById(id);
 function toast(s){$("toast").textContent=s;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),1800)}
 async function copy(id){let e=$(id),v=("value"in e)?e.value:e.textContent;if(!v)return;navigator.clipboard?.writeText(v);toast("Copied")}
 function login(){
-  const email=$("email").value.trim().toLowerCase();
-  const password=$("pass").value;
-  $("lockErr").textContent="";
-  if(!email||!password){$("lockErr").textContent="Enter your email and password.";return}
-  if(password!==SITE_PASSWORD){
-    $("lockErr").textContent="Wrong password.";
-    $("pass").value="";
-    $("pass").focus();
-    return;
+  const passwordInput = document.getElementById("pass");
+  const error = document.getElementById("lockErr");
+  const password = passwordInput ? passwordInput.value : "";
+
+  if(password !== "AndyKS"){
+    if(error) error.textContent = "Wrong password.";
+    if(passwordInput){
+      passwordInput.value = "";
+      passwordInput.focus();
+    }
+    return false;
   }
-  $("lock").classList.add("hidden");
-  $("app").classList.remove("hidden");
-  refreshAdminAccess();
+
+  if(error) error.textContent = "";
+  document.getElementById("lock").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+  if(typeof refreshAdminAccess === "function") refreshAdminAccess();
+  return true;
 }
 $("email").oninput=refreshAdminAccess;
 $("unlock").onclick=login;
@@ -498,4 +503,4 @@ function resetClicker(){clickCoins=0;clickPower=1;clickCost=25;clickSave();click
 snakeStart();memoryStart();clickRender();
 </script>
 </body>
-    </html>
+</html>
